@@ -27,11 +27,8 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
     // Token symbol
     string private _symbol;
 
-    // Mapping from token ID to owner address
-    mapping(uint256 => address) private _owners;
-
-    // Mapping owner address to token count
-    mapping(address => uint256) private _balances;
+    // Array of owners
+    address[] private _owners;
 
     // Mapping from token ID to approved address
     mapping(uint256 => address) private _tokenApprovals;
@@ -66,7 +63,11 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
      */
     function balanceOf(address owner) public view virtual override returns (uint256) {
         require(owner != address(0), "ERC721: address zero is not a valid owner");
-        return _balances[owner];
+        uint256 balance = 0;
+        for (uint256 i = 0; i < _owners.length; ++i) {
+            if (owner == _owners[i]) ++balance;
+        }
+        return balance;
     }
 
     /**
@@ -213,7 +214,7 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
      * and stop existing when they are burned (`_burn`).
      */
     function _exists(uint256 tokenId) internal view virtual returns (bool) {
-        return _ownerOf(tokenId) != address(0);
+        return tokenId < _owners.length && _ownerOf(tokenId) != address(0);
     }
 
     /**
@@ -275,15 +276,7 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
         // Check that tokenId was not minted by `_beforeTokenTransfer` hook
         require(!_exists(tokenId), "ERC721: token already minted");
 
-        unchecked {
-            // Will not overflow unless all 2**256 token ids are minted to the same owner.
-            // Given that tokens are minted one by one, it is impossible in practice that
-            // this ever happens. Might change if we allow batch minting.
-            // The ERC fails to describe this case.
-            _balances[to] += 1;
-        }
-
-        _owners[tokenId] = to;
+        _owners.push(to);
 
         emit Transfer(address(0), to, tokenId);
 
@@ -312,12 +305,7 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
         // Clear approvals
         delete _tokenApprovals[tokenId];
 
-        unchecked {
-            // Cannot overflow, as that would require more tokens to be burned/transferred
-            // out than the owner initially received through minting and transferring in.
-            _balances[owner] -= 1;
-        }
-        delete _owners[tokenId];
+        _owners[tokenId] = address(0);
 
         emit Transfer(owner, address(0), tokenId);
 
@@ -346,16 +334,7 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
 
         // Clear approvals from the previous owner
         delete _tokenApprovals[tokenId];
-
-        unchecked {
-            // `_balances[from]` cannot overflow for the same reason as described in `_burn`:
-            // `from`'s balance is the number of token held, which is at least one before the current
-            // transfer.
-            // `_balances[to]` could overflow in the conditions described in `_mint`. That would require
-            // all 2**256 token ids to be minted, which in practice is impossible.
-            _balances[from] -= 1;
-            _balances[to] += 1;
-        }
+        
         _owners[tokenId] = to;
 
         emit Transfer(from, to, tokenId);
@@ -465,9 +444,7 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
      * that `ownerOf(tokenId)` is `a`.
      */
     // solhint-disable-next-line func-name-mixedcase
-    function __unsafe_increaseBalance(address account, uint256 amount) internal {
-        _balances[account] += amount;
-    }
+    function __unsafe_increaseBalance(address account, uint256 amount) internal { }
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
