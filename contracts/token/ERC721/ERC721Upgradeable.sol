@@ -230,45 +230,46 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
     }
 
     /**
-     * @dev Safely mints `tokenId` and transfers it to `to`.
+     * @dev Safely mints a token in sequence and transfers it to `to`.
      *
      * Requirements:
      *
-     * - `tokenId` must not exist.
      * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
      *
      * Emits a {Transfer} event.
      */
-    function _safeMint(address to, uint256 tokenId) internal virtual {
-        _safeMint(to, tokenId, "");
+    function _safeMint(address to) internal virtual {
+        _safeMint(to, "");
     }
 
     /**
      * @dev Same as {xref-ERC721-_safeMint-address-uint256-}[`_safeMint`], with an additional `data` parameter which is
      * forwarded in {IERC721Receiver-onERC721Received} to contract recipients.
      */
-    function _safeMint(address to, uint256 tokenId, bytes memory data) internal virtual {
-        _mint(to, tokenId);
+    function _safeMint(address to, bytes memory data) internal virtual {
+        _mint(to);
         require(
-            _checkOnERC721Received(address(0), to, tokenId, data),
+            _checkOnERC721Received(address(0), to, _owners.length - 1, data),
             "ERC721: transfer to non ERC721Receiver implementer"
         );
     }
 
     /**
-     * @dev Mints `tokenId` and transfers it to `to`.
+     * @dev Mints a token in sequence and transfers it to `to`.
      *
      * WARNING: Usage of this method is discouraged, use {_safeMint} whenever possible
      *
      * Requirements:
      *
-     * - `tokenId` must not exist.
      * - `to` cannot be the zero address.
      *
      * Emits a {Transfer} event.
      */
-    function _mint(address to, uint256 tokenId) internal virtual {
+    function _mint(address to) internal virtual {
         require(to != address(0), "ERC721: mint to the zero address");
+
+        uint256 tokenId = _owners.length;
+
         require(!_exists(tokenId), "ERC721: token already minted");
 
         _beforeTokenTransfer(address(0), to, tokenId, 1);
